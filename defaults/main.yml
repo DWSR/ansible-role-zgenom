@@ -1,0 +1,13 @@
+zgenom_path: "{{ ansible_user_dir }}/.zgen"
+zgenom_branch: "main"
+zgenom_update: false
+zgenom_modify_zshrc: true
+zgenom_zsh_path: "{{ ansible_user_shell }}"
+zgenom_reset_zgen: true
+zgenom_zgen_plugins:
+  - zsh-users/zsh-completions
+  - zsh-users/zsh-autosuggestions
+  - zsh-users/zsh-syntax-highlighting
+  - zsh-users/zsh-history-substring-search
+  - unixorn/tumult.plugin.zsh
+  - chrissicool/zsh-256color

@@ -1,0 +1,82 @@
+---
+driver:
+  name: docker
+  # Don't bother transferring any build context to Docker
+  build_context: false
+  # Don't install Chef
+  require_chef_omnibus: false
+
+provisioner:
+  name: ansible_playbook
+  # Don't use hyphens
+  hosts: test_kitchen
+  role_name: zgenom
+  ansible_sudo: false
+  idempotency_test: true
+  # Don't install via Ansible omnibus
+  require_ansible_omnibus: false
+  # Install via OS package manager. This is broken on Focal
+  require_ansible_repo: true
+  # Don't install Chef
+  require_chef_for_busser: false
+  custom_pre_install_command: >
+    sudo apt-get install zsh --no-install-recommends --yes &&
+    sudo chsh -s /bin/zsh kitchen && touch ~/.zshrc
+
+
+lifecycle:
+  # Copies the role into each suite dir so that it can be copied to each host.
+  # kitchen-ansible doesn't support testing an individual role in a repository,
+  # so we work around that this way.
+  pre_converge: |
+    echo "## Preparing role for copying"
+    rm -rf "test/integration/${KITCHEN_SUITE_NAME}/roles"
+    mkdir -p "test/integration/${KITCHEN_SUITE_NAME}/roles/zgenom";
+    # Don't quote $(ls) or it breaks
+    for f in $(ls); do
+      # Avoid infinitely nesting the role or copying language dependencies
+      if [ "$f" != 'test' ] && [ "${f}" != 'vendor' ] && [ "${f}" != '.venv' ]; then
+        cp -Rv "${f}" ./test/integration/${KITCHEN_SUITE_NAME}/roles/zgenom/
+      fi
+    done
+    # Ensure contents are flushed to disk to try and avoid race conditions
+    sync
+    # More defensive coding
+    sleep 1
+
+platforms:
+  - name: ubuntu-20.04
+    driver:
+      # Use a custom Dockerfile to install Ansible ahead of time. This is because
+      # the existing installation options for Ansible don't seem to support Focal
+      # properly
+      dockerfile: test/integration/default/Dockerfile.erb
+    provisioner:
+      require_ansible_repo: false
+      custom_pre_install_command: ""
+  - name: ubuntu-18.04
+  - name: ubuntu-16.04
+  - name: macos-10.15
+    driver:
+      name: exec
+    provisioner:
+      # This tries to install Ansible via Homebrew
+      require_ansible_repo: false
+
+verifier:
+  name: inspec
+
+suites:
+  - name: default
+    includes:
+      - ubuntu-20.04
+      - ubuntu-16.04
+      - ubuntu-18.04
+  - name: nomodify
+    includes:
+      - ubuntu-20.04
+      - ubuntu-16.04
+      - ubuntu-18.04
+  - name: darwin
+    includes:
+      - macos-10.15

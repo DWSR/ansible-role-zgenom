@@ -1,0 +1,42 @@
+---
+# tasks file for zgenom
+- name: Clone zgenom to user's home directory
+  ansible.builtin.git:
+    accept_hostkey: true
+    depth: 1
+    refspec: "{{ zgenom_branch }}"
+    dest: "{{ zgenom_path }}"
+    repo: https://github.com/jandamm/zgenom.git
+    update: "{{ zgenom_update }}"
+
+- name: Add zgenom to zshrc
+  ansible.builtin.blockinfile:
+    backup: true
+    create: true
+    insertbefore: BOF
+    block: |
+      {%- if ansible_os_family == 'Darwin' %}
+      # Add brew autocompletions, if installed.
+      if command -v brew >/dev/null 2>&1; then
+        FPATH="$(brew --prefix)/share/zsh/site-functions:$FPATH"
+      fi
+      {% endif -%}
+      autoload -Uz compinit
+      compinit
+      export ZGEN_AUTOLOAD_COMPINIT=0
+      source "$HOME/.zgen/zgenom.zsh"
+      if ! zgen saved; then
+        echo "No zgen init script. Saving..."
+        # Load plugins
+        {% for p in zgenom_zgen_plugins -%}
+        zgen load {{ p }}
+        {% endfor -%}
+        
+        # Generate init script
+        zgen save
+      fi
+    marker: "# {mark} ZGENOM BLOCK"
+    path: "{{ ansible_user_dir }}/.zshrc"
+  when: zgenom_modify_zshrc
+  notify:
+    - Reset zgen

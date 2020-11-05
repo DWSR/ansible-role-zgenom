@@ -1,0 +1,6 @@
+- name: Reset zgen
+  # Can't use ansible.builtin.shell because https://github.com/ansible/ansible/pull/71824
+  shell:
+    cmd: source ~/.zshrc && zgen reset
+    executable: "{{ zgenom_zsh_path }}"
+  when: zgenom_reset_zgen and zgenom_modify_zshrc

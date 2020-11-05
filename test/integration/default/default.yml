@@ -1,0 +1,12 @@
+- hosts: test_kitchen
+  pre_tasks:
+    - name: Install Git
+      apt:
+        name: git
+        install_recommends: false
+        state: present
+      become: true
+  roles:
+    - zgenom
+  vars:
+    ansible_user_shell: /bin/zsh
